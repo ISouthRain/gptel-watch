@@ -1,5 +1,7 @@
 WARING: `gptel-watch.el` Most of the code is written by AI.
 
+`gptel-watch` Inspired by `aider --watch-files`
+
 # gptel-watch
 
 `gptel-watch` is an Emacs minor mode that automatically invokes `gptel-request` when the user types certain lines that indicate intent — for example, lines ending with `"AI!"` or `"#ai"`. It uses GPT-style large language models to assist writing or coding directly within your buffer, based on local context.
