@@ -16,7 +16,7 @@ This package builds on [`gptel`](https://github.com/karthink/gptel), providing a
 ## ✨ Features
 
 - Monitors user input and triggers GPT when a line ends with defined patterns.
-- Automatically extracts ±10 lines of context around the trigger line.
+- Automatically extracts ±10(gptel-watch-context-lines) lines of context around the trigger line.
 - Clears the trigger line and replaces it with GPT-generated output.
 - Works seamlessly with `newline`, `org-return`, or any custom command you define.
 - Supports global and per-buffer activation.
@@ -42,15 +42,18 @@ Then press `RET`. The line will be replaced with the GPT-generated result, such 
 ```C
 printf("Hello World");
 ```
-The request is built from ±10 lines of context surrounding the trigger line and sent to your configured GPT model using `gptel-request`.
+The request is built from ±10(gptel-watch-context-lines) lines of context surrounding the trigger line and sent to your configured GPT model using `gptel-request`.
 
 ## 🔧 Customization
 
 | Variable                       | Description                                                                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+|--------------------------------|----------------------------------------------------------------------------------------------------------|
 | `gptel-watch-trigger-patterns` | List of regex patterns. If a line ends with any of these, it triggers GPT. Default: `("AI" "AI!" "#ai")` |
 | `gptel-watch-trigger-commands` | List of Emacs commands that can trigger checking. Default: `(newline org-return)`                        |
 | `gptel-watch-system-prompt`    | The system prompt sent to GPT along with the context. Guides the style and constraints of the reply.     |
+| `gptel-watch-context-lines`    | Maximum number of rows in the context. Default: 10                                                       |
+
+
 
 All customization can also be set via `setq` in your `init.el`
 
