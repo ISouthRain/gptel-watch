@@ -33,6 +33,11 @@
   :type '(repeat regexp)
   :group 'gptel-watch)
 
+(defcustom gptel-watch-context-lines 10
+  "Number of lines before and after the trigger line to include as context."
+  :type 'integer
+  :group 'gptel-watch)
+
 (defcustom gptel-watch-trigger-commands '(newline org-return)
   "Commands that trigger GPT context extraction in `gptel-watch-mode`."
   :type '(repeat (function :tag "Command"))
@@ -82,9 +87,13 @@ Code
                gptel-watch-trigger-patterns))))
 
 (defun gptel-watch--extract-context ()
-  "Extract 10 lines before and after point as context."
-  (let ((start (save-excursion (forward-line -10) (line-beginning-position)))
-        (end   (save-excursion (forward-line 10) (line-end-position))))
+  "Extract surrounding lines as context based on `gptel-watch-context-lines`."
+  (let ((start (save-excursion
+                 (forward-line (- gptel-watch-context-lines))
+                 (line-beginning-position)))
+        (end (save-excursion
+               (forward-line gptel-watch-context-lines)
+               (line-end-position))))
     (buffer-substring-no-properties start end)))
 
 (defun gptel-watch--clear-line ()
