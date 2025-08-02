@@ -61,7 +61,7 @@ Code
   :group 'gptel-watch)
 
 ;;;###autoload
-(defun gptel-watch-manual ()
+(defun gptel-watch ()
   "Manually invoke GPT context generation on current line if it matches any trigger."
   (interactive)
   (when (gptel-watch--line-matches-p)
