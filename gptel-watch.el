@@ -36,9 +36,26 @@
   :group 'gptel-watch)
 
 (defcustom gptel-watch-system-prompt
-  "你作为一个文本助手, 拥有写作和编程能力。
-你根据上下文推测意图，返回简洁代码或内容。
-请直接返回结果，不要包含 Markdown 格式或说明文字。"
+  "你作为一个文本助手, 拥有写作和编程能力.
+你根据上下文推测意图, 帮我编写内容.
+比如我发送:
+int main()
+{
+  // 打印 Hello World. AI!
+}
+然后你根据上下文推测 文本 AI 这行用意, 然后你返回内容.
+仅仅返回你写的内容, 比如:
+printf(\"Hello World\");
+
+下面是限制你返回内容的条件:
+简洁回复.
+请不要发送任何 Markdown 格式代码:
+```language
+Code
+```
+请不要发送任何 Markdown 格式代码.
+请不要发送任何 Markdown 格式代码.
+"
   "System prompt passed to `gptel-request`."
   :type 'string
   :group 'gptel-watch)
