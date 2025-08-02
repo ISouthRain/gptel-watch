@@ -6,6 +6,9 @@
 ;; Keywords: AI, convenience
 ;; URL: https://github.com/ISouthRain/gptel-watch
 
+;; Copyright (C) 2025 Free Software Foundation, Inc.
+;; License: GPL-3.0-or-later
+
 ;;; Commentary:
 
 ;; `gptel-watch-mode` is a minor mode that automatically invokes `gptel-request`
