@@ -21,6 +21,7 @@
 ;;; Code:
 
 (require 'gptel)
+(require 'gptel-rewrite)
 (require 'cl-lib)
 
 (defgroup gptel-watch nil
@@ -106,6 +107,27 @@ Code
     (gptel-watch--clear-line)
     (gptel-watch--log "Sending context to GPT.")
     (gptel-request context :system gptel-watch-system-prompt)))
+
+(defun gptel-watch--handle-request ()
+  "Send extracted context to GPT and show diff overlay with the result."
+  (let ((context (gptel-watch--extract-context))
+        (beg (line-beginning-position))
+        (end (line-end-position)))
+    (gptel-watch--clear-line)
+    (gptel-watch--log "Sending context to GPT.")
+
+    ;; Set overlay + temporary buffer
+    (let* ((ov (make-overlay beg end nil t))
+           (proc-buf (gptel--temp-buffer " *gptel-rewrite*"))
+           (info (list :context (cons ov proc-buf))))
+      (overlay-put ov 'category 'gptel)
+      (overlay-put ov 'evaporate t)
+
+      ;; Send a request, and display the result via gptel--rewrite-callback.
+      (gptel-request context
+        :system gptel-watch-system-prompt
+        :callback (lambda (response _reqinfo)
+                    (gptel--rewrite-callback response info))))))
 
 (defun gptel-watch--maybe-request ()
   "Check if current line matches trigger and call GPT if so."
