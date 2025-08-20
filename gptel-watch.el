@@ -29,7 +29,7 @@
   :group 'convenience
   :prefix "gptel-watch-")
 
-(defcustom gptel-watch-trigger-patterns '("AI" "AI!" "#ai")
+(defcustom gptel-watch-trigger-patterns '("AI" "AI!" "#ai" "ai" "ai!")
   "List of line-ending patterns that trigger `gptel-watch-mode` actions."
   :type '(repeat regexp)
   :group 'gptel-watch)
@@ -124,10 +124,7 @@ Code
       (overlay-put ov 'evaporate t)
 
       ;; Send a request, and display the result via gptel--rewrite-callback.
-      (gptel-request context
-        :system gptel-watch-system-prompt
-        :callback (lambda (response _reqinfo)
-                    (gptel--rewrite-callback response info))))))
+      (gptel-request 
 
 (defun gptel-watch--maybe-request ()
   "Check if current line matches trigger and call GPT if so."
