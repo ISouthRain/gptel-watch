@@ -1,7 +1,7 @@
 ;;; gptel-watch.el --- Auto call gptel-request based on trigger patterns -*- lexical-binding: t; -*-
 
 ;; Author: ISouthRain
-;; Version: 0.2
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "27.1") (gptel "0.9.0"))
 ;; Keywords: AI, convenience
 ;; URL: https://github.com/ISouthRain/gptel-watch
@@ -113,7 +113,7 @@ Code
   (let ((context (gptel-watch--extract-context))
         (beg (line-beginning-position))
         (end (line-end-position)))
-    (gptel-watch--clear-line)
+    ;; (gptel-watch--clear-line) ;; Delete the current line.
     (gptel-watch--log "Sending context to GPT.")
 
     ;; Set overlay + temporary buffer.
