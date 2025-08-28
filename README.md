@@ -16,7 +16,7 @@ This package builds on [`gptel`](https://github.com/karthink/gptel), providing a
 ## ✨ Features
 
 - Monitors user input and triggers GPT when a line ends with defined patterns.
-- Automatically extracts ±10(gptel-watch-context-lines) lines of context around the trigger line.
+- Custom extraction of context, see title.: `How to Context extraction`
 - Clears the trigger line and replaces it with GPT-generated output.
 - Works seamlessly with `newline`, `org-return`, or any custom command you define.
 - Supports global and per-buffer activation.
@@ -42,7 +42,6 @@ Then press `RET`. The line will be replaced with the GPT-generated result, such 
 ```C
 printf("Hello World");
 ```
-The request is built from ±10(gptel-watch-context-lines) lines of context surrounding the trigger line and sent to your configured GPT model using `gptel-request`.
 
 ## 👓 How to Context extraction
 1. `Current Defun`: Current definition under cursor
