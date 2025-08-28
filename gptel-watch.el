@@ -97,10 +97,6 @@ Code
                (line-end-position))))
     (buffer-substring-no-properties start end)))
 
-(defun gptel-watch--clear-line ()
-  "Clear current line (preserving newline)."
-  (delete-region (line-beginning-position) (line-end-position)))
-
 (defun gptel-watch--handle-request ()
   "Send extracted context to GPT and clear current line."
   (let ((context (gptel-watch--extract-context)))
@@ -113,7 +109,6 @@ Code
   (let ((context (gptel-watch--extract-context))
         (beg (line-beginning-position))
         (end (line-end-position)))
-    ;; (gptel-watch--clear-line) ;; Delete the current line.
     (gptel-watch--log "Sending context to GPT.")
 
     ;; Set overlay + temporary buffer.

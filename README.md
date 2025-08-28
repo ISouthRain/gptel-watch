@@ -51,8 +51,6 @@ The request is built from ±10(gptel-watch-context-lines) lines of context surro
 | `gptel-watch-trigger-patterns` | List of regex patterns. If a line ends with any of these, it triggers GPT. Default: `("AI" "AI!" "#ai")` |
 | `gptel-watch-trigger-commands` | List of Emacs commands that can trigger checking. Default: `(newline org-return)`                        |
 | `gptel-watch-system-prompt`    | The system prompt sent to GPT along with the context. Guides the style and constraints of the reply.     |
-| `gptel-watch-context-lines`    | Maximum number of rows in the context. Default: 10                                                       |
-
 
 
 All customization can also be set via `setq` in your `init.el`
