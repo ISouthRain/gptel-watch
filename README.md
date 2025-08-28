@@ -44,6 +44,12 @@ printf("Hello World");
 ```
 The request is built from ±10(gptel-watch-context-lines) lines of context surrounding the trigger line and sent to your configured GPT model using `gptel-request`.
 
+## 👓 How to Context extraction
+1. `Current Defun`: Current definition under cursor
+2. `Down/Up Line`: Up/Down a line
+3. `Line Range`: Precise line number range of the current buffer
+4. `Only Current Line`: Only the current line, do not extract context.
+
 ## 🔧 Customization
 
 | Variable                       | Description                                                                                              |

@@ -1,8 +1,8 @@
 ;;; gptel-watch.el --- Auto call gptel-request based on trigger patterns -*- lexical-binding: t; -*-
 
 ;; Author: ISouthRain
-;; Version: 0.2.1
-;; Package-Requires: ((emacs "27.1") (gptel "0.9.0"))
+;; Version: 0.2.2
+;; Package-Requires: ((emacs "27.1") (gptel "0.9.8.5"))
 ;; Keywords: AI, convenience
 ;; URL: https://github.com/ISouthRain/gptel-watch
 
@@ -69,6 +69,9 @@ Code
   :type 'string
   :group 'gptel-watch)
 
+(defvar gptel-watch--current-context nil
+  "Current context.")
+
 ;;;###autoload
 (defun gptel-watch ()
   "Manually invoke GPT context generation on current line if it matches any trigger."
@@ -88,41 +91,88 @@ Code
                gptel-watch-trigger-patterns))))
 
 (defun gptel-watch--extract-context ()
-  "Extract surrounding lines as context based on `gptel-watch-context-lines`."
-  (let ((start (save-excursion
-                 (forward-line (- gptel-watch-context-lines))
-                 (line-beginning-position)))
-        (end (save-excursion
-               (forward-line gptel-watch-context-lines)
-               (line-end-position))))
-    (buffer-substring-no-properties start end)))
+  "Extract context interactively with four modes:
+1. Current Defun: extract current defun.
+2. Down/Up Line: extract relative lines around point.
+3. Line Range: extract exact line range.
+4. Only Current Line."
+  (interactive)
+  (condition-case nil
+      (let* ((choice (completing-read
+                      "Choose context method: "
+                      '("Current Defun(mark-defun)" "Down/Up Line" "Line Range" "Only Current Line")
+                      nil t))
+             (context
+              (pcase choice
+                ;; 1. Current function
+                ("Current Defun(mark-defun)"
+                 (save-excursion
+                   (mark-defun)
+                   (prog1
+                       (buffer-substring-no-properties (region-beginning) (region-end))
+                     (deactivate-mark))))
 
-(defun gptel-watch--handle-request ()
-  "Send extracted context to GPT and clear current line."
-  (let ((context (gptel-watch--extract-context)))
-    (gptel-watch--clear-line)
-    (gptel-watch--log "Sending context to GPT.")
-    (gptel-request context :system gptel-watch-system-prompt)))
+                ;; 2. Move Line
+                ("Down/Up Line"
+                 (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): "))
+                        (parts (split-string input ","))
+                        (up (string-to-number (car parts)))
+                        (down (string-to-number (cadr parts)))
+                        (start (save-excursion
+                                 (forward-line (- up))
+                                 (line-beginning-position)))
+                        (end (save-excursion
+                               (forward-line down)
+                               (line-end-position))))
+                   (buffer-substring-no-properties start end)))
+
+                ;; 3. Line range
+                ("Line Range"
+                 (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): "))
+                        (parts (split-string input ","))
+                        (start-line (string-to-number (car parts)))
+                        (end-line (string-to-number (cadr parts)))
+                        (start (save-excursion
+                                 (goto-char (point-min))
+                                 (forward-line (1- start-line))
+                                 (point)))
+                        (end (save-excursion
+                               (goto-char (point-min))
+                               (forward-line (1- end-line))
+                               (line-end-position))))
+                   (buffer-substring-no-properties start end)))
+
+                ;; 4. Only Current line
+                ("Only Current Line"
+                 (buffer-substring-no-properties
+                  (line-beginning-position) (line-end-position))))))
+        context)
+    ;; Returning nil when the user cancels with C-g.
+    (quit nil)))
 
 (defun gptel-watch--handle-request ()
   "Send extracted context to GPT and show diff overlay with the result."
-  (let ((context (gptel-watch--extract-context))
-        (beg (line-beginning-position))
-        (end (line-end-position)))
-    (gptel-watch--log "Sending context to GPT.")
+  (let ((context (gptel-watch--extract-context)))
+    (unless context
+      (gptel-watch--log "User proactively stopped."))
+    (when context   ;; Add a check here, exit directly if nil.
+      (let ((beg (line-beginning-position))
+            (end (line-end-position)))
+        (setq gptel-watch--current-context context)
+        (gptel-watch--log "Sending context to GPT.")
 
-    ;; Set overlay + temporary buffer.
-    (let* ((ov (make-overlay beg end nil t))
-           (proc-buf (gptel--temp-buffer " *gptel-rewrite*"))
-           (info (list :context (cons ov proc-buf))))
-      (overlay-put ov 'category 'gptel)
-      (overlay-put ov 'evaporate t)
+        ;; Set overlay + temporary buffer.
+        (let* ((ov (make-overlay beg end nil t))
+               (proc-buf (gptel--temp-buffer " *gptel-rewrite*"))
+               (info (list :context (cons ov proc-buf))))
+          (overlay-put ov 'category 'gptel)
+          (overlay-put ov 'evaporate t)
 
-      ;; Send a request, and display the result via gptel--rewrite-callback.
-      (gptel-request context
-        :system gptel-watch-system-prompt
-        :callback (lambda (response _reqinfo)
-                    (gptel--rewrite-callback response info))))))
+          ;; Send a request, and display the result via gptel--rewrite-callback.
+          (gptel-request context
+            :system gptel-watch-system-prompt
+            :callback (lambda (response _reqinfo)
+                        (gptel--rewrite-callback response info))))))))
 
 (defun gptel-watch--maybe-request ()
   "Check if current line matches trigger and call GPT if so."
