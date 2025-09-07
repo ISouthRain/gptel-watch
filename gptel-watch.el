@@ -34,11 +34,6 @@
   :type '(repeat regexp)
   :group 'gptel-watch)
 
-(defcustom gptel-watch-context-lines 10
-  "Number of lines before and after the trigger line to include as context."
-  :type 'integer
-  :group 'gptel-watch)
-
 (defcustom gptel-watch-trigger-commands '(newline org-return)
   "Commands that trigger GPT context extraction in `gptel-watch-mode`."
   :type '(repeat (function :tag "Command"))
