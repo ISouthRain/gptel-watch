@@ -67,6 +67,9 @@ Code
 (defvar gptel-watch--current-context nil
   "Current context.")
 
+(defvar gptel-watch--line-history nil
+    "History list for User input line format.")
+
 ;;;###autoload
 (defun gptel-watch ()
   "Manually invoke GPT context generation on current line if it matches any trigger."
@@ -95,21 +98,29 @@ Code
   (condition-case nil
       (let* ((choice (completing-read
                       "Choose context method: "
-                      '("Current Defun(mark-defun)" "Down/Up Line" "Line Range" "Only Current Line")
+                      '("Defun(mark-defun)" "Page(mark-page)" "Down/Up Line" "Line Range" "Only Current Line")
                       nil t))
              (context
               (pcase choice
-                ;; 1. Current function
-                ("Current Defun(mark-defun)"
+                ;; Defun
+                ("Defun(mark-defun)"
                  (save-excursion
                    (mark-defun)
                    (prog1
                        (buffer-substring-no-properties (region-beginning) (region-end))
                      (deactivate-mark))))
 
-                ;; 2. Move Line
+                ;; Page
+                ("Page(mark-page)"
+                 (save-excursion
+                   (mark-page)
+                   (prog1
+                       (buffer-substring-no-properties (region-beginning) (region-end))
+                     (deactivate-mark))))
+
+                ;; Down/Up Line
                 ("Down/Up Line"
-                 (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): "))
+                 (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): " nil 'gptel-watch--line-history))
                         (parts (split-string input ","))
                         (up (string-to-number (car parts)))
                         (down (string-to-number (cadr parts)))
@@ -121,9 +132,9 @@ Code
                                (line-end-position))))
                    (buffer-substring-no-properties start end)))
 
-                ;; 3. Line range
+                ;; Line Range
                 ("Line Range"
-                 (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): "))
+                 (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): " nil 'gptel-watch--line-history))
                         (parts (split-string input ","))
                         (start-line (string-to-number (car parts)))
                         (end-line (string-to-number (cadr parts)))
@@ -137,7 +148,7 @@ Code
                                (line-end-position))))
                    (buffer-substring-no-properties start end)))
 
-                ;; 4. Only Current line
+                ;; Only Current line
                 ("Only Current Line"
                  (buffer-substring-no-properties
                   (line-beginning-position) (line-end-position))))))
