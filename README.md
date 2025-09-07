@@ -48,6 +48,7 @@ printf("Hello World");
 2. `Down/Up Line`: Up/Down a line
 3. `Line Range`: Precise line number range of the current buffer
 4. `Only Current Line`: Only the current line, do not extract context.
+5. `And more` ........
 
 ## 🔧 Customization
 
