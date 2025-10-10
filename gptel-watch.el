@@ -183,6 +183,9 @@ Code
 (defun gptel-watch--maybe-request ()
   "Check if current line matches trigger and call GPT if so."
   (when (gptel-watch--line-matches-p)
+    (forward-line 1) ;; go to the new line.
+    (delete-line) ;; Remove the new line.
+    (forward-line -1) ;; go to the AI line.
     (gptel-watch--handle-request)))
 
 (defun gptel-watch--post-command-hook ()
@@ -190,7 +193,7 @@ Code
   (when (and (not (minibufferp))
              (memq this-command gptel-watch-trigger-commands))
     (save-excursion
-      (forward-line -1)
+      (forward-line -1) ;; Because new line, So.
       (gptel-watch--maybe-request))))
 
 ;;;###autoload
