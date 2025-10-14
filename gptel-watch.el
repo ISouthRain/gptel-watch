@@ -68,7 +68,7 @@ Code
   "Current context.")
 
 (defvar gptel-watch--line-history nil
-    "History list for User input line format.")
+  "History list for User input line format.")
 
 ;;;###autoload
 (defun gptel-watch ()
@@ -107,39 +107,47 @@ Code
 
 (defun gptel-watch--extract-context-lines-relative ()
   "Extract context based on relative lines above and below point."
-  (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): " nil 'gptel-watch--line-history)))
-    (unless (string-match-p "^[0-9]+,[0-9]+$" input)
-      (user-error "Invalid input format. Expected e.g. 10,20"))
-    (let* ((parts (split-string input ","))
-           (up (string-to-number (car parts)))
-           (down (string-to-number (cadr parts)))
-           (start (save-excursion
-                    (forward-line (- up))
-                    (line-beginning-position)))
-           (end (save-excursion
-                  (forward-line down)
-                  (line-end-position))))
-      (buffer-substring-no-properties start end))))
+  (condition-case err
+      (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): " nil 'gptel-watch--line-history)))
+        (unless (string-match-p "^[0-9]+,[0-9]+$" input)
+          (user-error "Invalid input format. Expected e.g. 10,20"))
+        (let* ((parts (split-string input ","))
+               (up (string-to-number (car parts)))
+               (down (string-to-number (cadr parts)))
+               (start (save-excursion
+                        (forward-line (- up))
+                        (line-beginning-position)))
+               (end (save-excursion
+                      (forward-line down)
+                      (line-end-position))))
+          (buffer-substring-no-properties start end)))
+    ((quit user-error)
+     (message "[gptel-watch] Cancelled or invalid input (Down/Up Line).")
+     nil)))
 
 (defun gptel-watch--extract-context-lines-range ()
   "Extract context between two absolute line numbers."
-  (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): " nil 'gptel-watch--line-history)))
-    (unless (string-match-p "^[0-9]+,[0-9]+$" input)
-      (user-error "Invalid input format. Expected e.g. 100,200"))
-    (let* ((parts (split-string input ","))
-           (start-line (string-to-number (car parts)))
-           (end-line (string-to-number (cadr parts))))
-      (when (<= end-line start-line)
-        (user-error "END line must be greater than START line"))
-      (let ((start (save-excursion
-                     (goto-char (point-min))
-                     (forward-line (1- start-line))
-                     (point)))
-            (end (save-excursion
-                   (goto-char (point-min))
-                   (forward-line (1- end-line))
-                   (line-end-position))))
-        (buffer-substring-no-properties start end)))))
+  (condition-case err
+      (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): " nil 'gptel-watch--line-history)))
+        (unless (string-match-p "^[0-9]+,[0-9]+$" input)
+          (user-error "Invalid input format. Expected e.g. 100,200"))
+        (let* ((parts (split-string input ","))
+               (start-line (string-to-number (car parts)))
+               (end-line (string-to-number (cadr parts))))
+          (when (<= end-line start-line)
+            (user-error "END line must be greater than START line"))
+          (let ((start (save-excursion
+                         (goto-char (point-min))
+                         (forward-line (1- start-line))
+                         (point)))
+                (end (save-excursion
+                       (goto-char (point-min))
+                       (forward-line (1- end-line))
+                       (line-end-position))))
+            (buffer-substring-no-properties start end))))
+    ((quit user-error)
+     (message "[gptel-watch] Cancelled or invalid input (Line Range).")
+     nil)))
 
 (defun gptel-watch--extract-context-current-line ()
   "Extract text of the current line only."
@@ -147,11 +155,12 @@ Code
 
 (defun gptel-watch--extract-context ()
   "Extract context interactively using one of several methods:
-1. Defun(mark-defun) — extract current function (and one line before it).
-2. Page(mark-page) — extract current page.
-3. Down/Up Line — extract relative lines around point.
-4. Line Range — extract lines by absolute numbers.
-5. Only Current Line — extract only the current line."
+1. Defun(mark-defun)
+2. Page(mark-page)
+3. Down/Up Line
+4. Line Range
+5. Only Current Line
+Return NIL if user cancels or input invalid."
   (condition-case nil
       (let* ((choice (completing-read
                       "Choose context method: "
@@ -168,7 +177,9 @@ Code
           ("Line Range" (gptel-watch--extract-context-lines-range))
           ("Only Current Line" (gptel-watch--extract-context-current-line))
           (_ nil)))
-    nil))
+    (quit
+     (message "[gptel-watch] Cancelled context extraction.")
+     nil)))
 
 (defun gptel-watch--request ()
   "Send extracted context to GPT and show diff overlay with the result."
