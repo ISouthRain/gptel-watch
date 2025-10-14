@@ -198,10 +198,7 @@ Code
 
 ;;;###autoload
 (define-minor-mode gptel-watch-mode
-  "Automatically call `gptel-request` when typing lines ending with a trigger pattern.
-This mode listens to commands like `newline` or `org-return`, and if the
-previous line ends with a string in `gptel-watch-trigger-patterns`,
-the line is cleared and surrounding context is sent to GPT for continuation."
+  "Watch User's AI intention."
   :lighter " WatchAI"
   :group 'gptel-watch
   (if gptel-watch-mode
