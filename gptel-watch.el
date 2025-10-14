@@ -1,7 +1,7 @@
 ;;; gptel-watch.el --- Auto call gptel-request based on trigger patterns -*- lexical-binding: t; -*-
 
 ;; Author: ISouthRain
-;; Version: 0.2.2
+;; Version: 0.2.3
 ;; Package-Requires: ((emacs "27.1") (gptel "0.9.8.5"))
 ;; Keywords: AI, convenience
 ;; URL: https://github.com/ISouthRain/gptel-watch
