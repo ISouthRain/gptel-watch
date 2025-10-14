@@ -74,8 +74,9 @@ Code
 (defun gptel-watch ()
   "Manually invoke GPT context generation on current line if it matches any trigger."
   (interactive)
-  (when (gptel-watch--line-matches-p)
-    (gptel-watch--handle-request)))
+  (if (gptel-watch--line-matches-p)
+      (gptel-watch--request)
+    (user-error "[gptel-watch] No AI line.")))
 
 (defun gptel-watch--log (fmt &rest args)
   "Internal logging utility for gptel-watch."
@@ -87,76 +88,89 @@ Code
     (when line
       (cl-some (lambda (pat) (string-match-p (concat pat "$") line))
                gptel-watch-trigger-patterns))))
+
+(defun gptel-watch--extract-context-defun ()
+  "Extract text of the current defun, including one line before it."
+  (save-excursion
+    (mark-defun)
+    (prog1
+        (buffer-substring-no-properties (region-beginning) (region-end))
+      (deactivate-mark))))
+
+(defun gptel-watch--extract-context-page ()
+  "Extract text of the current page (`mark-page`)."
+  (save-excursion
+    (mark-page)
+    (prog1
+        (buffer-substring-no-properties (region-beginning) (region-end))
+      (deactivate-mark))))
+
+(defun gptel-watch--extract-context-lines-relative ()
+  "Extract context based on relative lines above and below point."
+  (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): " nil 'gptel-watch--line-history)))
+    (unless (string-match-p "^[0-9]+,[0-9]+$" input)
+      (user-error "Invalid input format. Expected e.g. 10,20"))
+    (let* ((parts (split-string input ","))
+           (up (string-to-number (car parts)))
+           (down (string-to-number (cadr parts)))
+           (start (save-excursion
+                    (forward-line (- up))
+                    (line-beginning-position)))
+           (end (save-excursion
+                  (forward-line down)
+                  (line-end-position))))
+      (buffer-substring-no-properties start end))))
+
+(defun gptel-watch--extract-context-lines-range ()
+  "Extract context between two absolute line numbers."
+  (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): " nil 'gptel-watch--line-history)))
+    (unless (string-match-p "^[0-9]+,[0-9]+$" input)
+      (user-error "Invalid input format. Expected e.g. 100,200"))
+    (let* ((parts (split-string input ","))
+           (start-line (string-to-number (car parts)))
+           (end-line (string-to-number (cadr parts))))
+      (when (<= end-line start-line)
+        (user-error "END line must be greater than START line"))
+      (let ((start (save-excursion
+                     (goto-char (point-min))
+                     (forward-line (1- start-line))
+                     (point)))
+            (end (save-excursion
+                   (goto-char (point-min))
+                   (forward-line (1- end-line))
+                   (line-end-position))))
+        (buffer-substring-no-properties start end)))))
+
+(defun gptel-watch--extract-context-current-line ()
+  "Extract text of the current line only."
+  (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
 
 (defun gptel-watch--extract-context ()
-  "Extract context interactively with four modes:
-1. Current Defun: extract current defun.
-2. Down/Up Line: extract relative lines around point.
-3. Line Range: extract exact line range.
-4. Only Current Line."
-  (interactive)
+  "Extract context interactively using one of several methods:
+1. Defun(mark-defun) — extract current function (and one line before it).
+2. Page(mark-page) — extract current page.
+3. Down/Up Line — extract relative lines around point.
+4. Line Range — extract lines by absolute numbers.
+5. Only Current Line — extract only the current line."
   (condition-case nil
       (let* ((choice (completing-read
                       "Choose context method: "
-                      '("Defun(mark-defun)" "Page(mark-page)" "Down/Up Line" "Line Range" "Only Current Line")
-                      nil t))
-             (context
-              (pcase choice
-                ;; Defun
-                ("Defun(mark-defun)"
-                 (save-excursion
-                   (mark-defun)
-                   (prog1
-                       (buffer-substring-no-properties (region-beginning) (region-end))
-                     (deactivate-mark))))
-
-                ;; Page
-                ("Page(mark-page)"
-                 (save-excursion
-                   (mark-page)
-                   (prog1
-                       (buffer-substring-no-properties (region-beginning) (region-end))
-                     (deactivate-mark))))
-
-                ;; Down/Up Line
-                ("Down/Up Line"
-                 (let* ((input (read-string "Enter UP,DOWN lines (e.g. 10,20): " nil 'gptel-watch--line-history))
-                        (parts (split-string input ","))
-                        (up (string-to-number (car parts)))
-                        (down (string-to-number (cadr parts)))
-                        (start (save-excursion
-                                 (forward-line (- up))
-                                 (line-beginning-position)))
-                        (end (save-excursion
-                               (forward-line down)
-                               (line-end-position))))
-                   (buffer-substring-no-properties start end)))
-
-                ;; Line Range
-                ("Line Range"
-                 (let* ((input (read-string "Enter START,END line numbers (e.g. 100,200): " nil 'gptel-watch--line-history))
-                        (parts (split-string input ","))
-                        (start-line (string-to-number (car parts)))
-                        (end-line (string-to-number (cadr parts)))
-                        (start (save-excursion
-                                 (goto-char (point-min))
-                                 (forward-line (1- start-line))
-                                 (point)))
-                        (end (save-excursion
-                               (goto-char (point-min))
-                               (forward-line (1- end-line))
-                               (line-end-position))))
-                   (buffer-substring-no-properties start end)))
-
-                ;; Only Current line
-                ("Only Current Line"
-                 (buffer-substring-no-properties
-                  (line-beginning-position) (line-end-position))))))
-        context)
-    ;; Returning nil when the user cancels with C-g.
-    (quit nil)))
-
-(defun gptel-watch--handle-request ()
+                      '("Defun(mark-defun)"
+                        "Page(mark-page)"
+                        "Down/Up Line"
+                        "Line Range"
+                        "Only Current Line")
+                      nil t)))
+        (pcase choice
+          ("Defun(mark-defun)" (gptel-watch--extract-context-defun))
+          ("Page(mark-page)" (gptel-watch--extract-context-page))
+          ("Down/Up Line" (gptel-watch--extract-context-lines-relative))
+          ("Line Range" (gptel-watch--extract-context-lines-range))
+          ("Only Current Line" (gptel-watch--extract-context-current-line))
+          (_ nil)))
+    nil))
+
+(defun gptel-watch--request ()
   "Send extracted context to GPT and show diff overlay with the result."
   (let ((context (gptel-watch--extract-context)))
     (unless context
@@ -180,21 +194,29 @@ Code
             :callback (lambda (response _reqinfo)
                         (gptel--rewrite-callback response info))))))))
 
-(defun gptel-watch--maybe-request ()
-  "Check if current line matches trigger and call GPT if so."
-  (when (gptel-watch--line-matches-p)
-    (forward-line 1) ;; go to the new line.
-    (delete-line) ;; Remove the new line.
-    (forward-line -1) ;; go to the AI line.
-    (gptel-watch--handle-request)))
-
-(defun gptel-watch--post-command-hook ()
-  "Run after a command, check if it should trigger GPT generation."
+(defun gptel-watch--post-command ()
+  "Run after a command, check user AI intertion."
   (when (and (not (minibufferp))
              (memq this-command gptel-watch-trigger-commands))
     (save-excursion
       (forward-line -1) ;; Because new line, So.
-      (gptel-watch--maybe-request))))
+      (when (gptel-watch--line-matches-p)
+        (forward-line 1) ;; go to the new line.
+        (delete-line) ;; Remove the new line.
+        (forward-line -1) ;; go to the AI line.
+        (gptel-watch--request)))))
+
+;;;###autoload
+(defun gptel-watch-switch-prompt ()
+  "Set `gptel-watch-system-prompt' from `gptel-directives'."
+  (interactive)
+  (condition-case nil
+      (let* ((choice (completing-read
+                      "Choose system prompt: "
+                      (mapcar (lambda (x) (symbol-name (car x))) gptel-directives)
+                      nil t)) ; t indicates that an option must be matched.
+             (content (cdr (assoc (intern choice) gptel-directives))))
+        (setq gptel-watch-system-prompt content))))
 
 ;;;###autoload
 (define-minor-mode gptel-watch-mode
@@ -202,8 +224,8 @@ Code
   :lighter " WatchAI"
   :group 'gptel-watch
   (if gptel-watch-mode
-      (add-hook 'post-command-hook #'gptel-watch--post-command-hook nil t)
-    (remove-hook 'post-command-hook #'gptel-watch--post-command-hook t)))
+      (add-hook 'post-command-hook #'gptel-watch--post-command nil t)
+    (remove-hook 'post-command-hook #'gptel-watch--post-command t)))
 
 (defun gptel-watch--enable-if-eligible ()
   "Enable `gptel-watch-mode` if not in minibuffer."
